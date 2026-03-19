@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🧌 Ultimate Troll Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: #1a1a2e;
+            color: #fff;
+            width: 100vw;
+            height: 100vh;
+            touch-action: manipulation;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* ===== SCREENS ===== */
+        .screen {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 10;
+        }
+        .screen.active {
+            display: flex;
+        }
+
+        /* ===== START SCREEN ===== */
+        #startScreen {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+        }
+        .game-title {
+            font-size: clamp(2rem, 8vw, 4.5rem);
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #f093fb, #f5576c, #ffd200, #4facfe);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 3s ease infinite;
+        }
+        @keyframes gradientShift {
+            0%,100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        .subtitle {
+            font-size: clamp(0.9rem, 3vw, 1.3rem);
+            color: #aaa;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        .troll-face-big {
+            font-size: clamp(4rem, 15vw, 8rem);
+            animation: bounce 2s ease infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes bounce {
+            0%,100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            padding: 15px 40px;
+            font-size: clamp(1rem, 3.5vw, 1.3rem);
+            font-weight: 700;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 8px;
+            min-width: 200px;
+            text-align: center;
+            position: relative;
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #f5576c, #ff6b9d);
+            color: #fff;
+            box-shadow: 0 5px 25px rgba(245, 87, 108, 0.4);
+        }
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 35px rgba(245, 87, 108, 0.6);
+        }
+        .btn-secondary {
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            color: #fff;
+            box-shadow: 0 5px 25px rgba(79, 172, 254, 0.4);
+        }
+        .btn-green {
+            background: linear-gradient(45deg, #43e97b, #38f9d7);
+            color: #333;
+            box-shadow: 0 5px 25px rgba(67, 233, 123, 0.4);
+        }
+        .btn-danger {
+            background: linear-gradient(45deg, #f5576c, #ff3c3c);
+            color: #fff;
+        }
+        .btn-small {
+            padding: 10px 25px;
+            font-size: clamp(0.8rem, 2.5vw, 1rem);
+            min-width: 120px;
+        }
+
+        /* ===== LEVEL SCREEN ===== */
+        #levelScreen {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+        }
+        .level-container {
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            padding: 20px;
+        }
+        .level-header {
+            font-size: clamp(1rem, 3vw, 1.3rem);
+            color: #f5576c;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+        .level-title {
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            font-weight: 800;
+            margin-bottom: 25px;
+            line-height: 1.3;
+        }
+        .level-emoji {
+            font-size: clamp(3rem, 12vw, 6rem);
+            margin-bottom: 25px;
+            display: block;
+        }
+        .level-question {
+            font-size: clamp(1rem, 3.5vw, 1.4rem);
+            color: #ddd;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .options-grid.single-col {
+            grid-template-columns: 1fr;
+        }
+
+        /* ===== DODGE BUTTON ===== */
+        .dodge-btn {
+            position: absolute;
+            transition: none;
+            z-index: 100;
+        }
+
+        /* ===== PROGRESS BAR ===== */
+        .progress-container {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            z-index: 1000;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #f5576c, #ffd200, #4facfe);
+            transition: width 0.5s ease;
+            border-radius: 0 3px 3px 0;
+        }
+
+        /* ===== SCORE DISPLAY ===== */
+        .score-display {
+            position: fixed;
+            top: 15px; right: 15px;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 18px;
+            border-radius: 25px;
+            font-size: clamp(0.8rem, 2.5vw, 1rem);
+            z-index: 999;
+            backdrop-filter: blur(10px);
+        }
+
+        /* ===== RESULT SCREEN ===== */
+        #resultScreen {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+        }
+        .result-emoji {
+            font-size: clamp(4rem, 15vw, 8rem);
+            animation: spin 2s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(10deg) scale(1.1); }
+            50% { transform: rotate(0deg) scale(1); }
+            75% { transform: rotate(-10deg) scale(1.1); }
+        }
+        .result-title {
+            font-size: clamp(1.8rem, 6vw, 3rem);
+            font-weight: 900;
+            margin: 20px 0 10px;
+            text-align: center;
+        }
+        .result-score {
+            font-size: clamp(1rem, 3vw, 1.4rem);
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+        .result-message {
+            font-size: clamp(0.9rem, 3vw, 1.2rem);
+            color: #f5576c;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 400px;
+            line-height: 1.5;
+        }
+
+        /* ===== FAKE LOADING ===== */
+        .fake-loading {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+        .fake-loading.active {
+            display: flex;
+        }
+        .loader {
+            width: 60px; height: 60px;
+            border: 5px solid rgba(255,255,255,0.1);
+            border-top: 5px solid #f5576c;
+            border-radius: 50%;
+            animation: spinLoader 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spinLoader {
+            to { transform: rotate(360deg); }
+        }
+        .loading-text {
+            font-size: clamp(0.9rem, 3vw, 1.1rem);
+            color: #aaa;
+        }
+
+        /* ===== POPUP ===== */
+        .popup-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+        .popup-overlay.active {
+            display: flex;
+        }
+        .popup {
+            background: linear-gradient(135deg, #2d2d44, #1a1a2e);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            border: 2px solid rgba(245, 87, 108, 0.3);
+            animation: popIn 0.3s ease;
+        }
+        @keyframes popIn {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .popup-emoji {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        .popup-text {
+            font-size: clamp(1rem, 3vw, 1.2rem);
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        /* ===== SLIDER AREA ===== */
+        .slider-area {
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
+        }
+        .slider-area input[type="range"] {
+            width: 100%;
+            height: 30px;
+            -webkit-appearance: none;
+            background: linear-gradient(90deg, #f5576c, #ffd200);
+            border-radius: 15px;
+            outline: none;
+        }
+        .slider-area input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 40px; height: 40px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+        }
+        .slider-value {
+            font-size: 2rem;
+            margin-top: 15px;
+            font-weight: 800;
+        }
+
+        /* ===== CLICK AREA ===== */
+        .click-area {
+            width: clamp(120px, 35vw, 200px);
+            height: clamp(120px, 35vw, 200px);
+            background: linear-gradient(135deg, #f5576c, #ff6b9d);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            cursor: pointer;
+            transition: transform 0.1s;
+            box-shadow: 0 10px 40px rgba(245, 87, 108, 0.4);
+            margin: 20px 0;
+        }
+        .click-area:active {
+            transform: scale(0.95);
+        }
+        .click-counter {
+            font-size: clamp(2rem, 6vw, 3rem);
+            font-weight: 900;
+            margin: 10px 0;
+        }
+        .click-target {
+            font-size: clamp(0.9rem, 3vw, 1.1rem);
+            color: #aaa;
+        }
+
+        /* ===== FIND BUTTON LEVEL ===== */
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
+        }
+        .grid-btn {
+            padding: 12px 5px;
+            font-size: clamp(0.7rem, 2vw, 0.9rem);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.2s;
+        }
+
+        /* ===== TIMER BAR ===== */
+        .timer-bar-container {
+            width: 100%;
+            max-width: 400px;
+            height: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            margin: 15px auto;
+            overflow: hidden;
+        }
+        .timer-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #43e97b, #38f9d7);
+            border-radius: 6px;
+            transition: width 0.1s linear;
+        }
+        .timer-bar.danger {
+            background: linear-gradient(90deg, #f5576c, #ff3c3c);
+        }
+
+        /* ===== SHAKE ANIMATION ===== */
+        @keyframes shake {
+            0%,100% { transform: translateX(0); }
+            10%,30%,50%,70%,90% { transform: translateX(-5px); }
+            20%,40%,60%,80% { transform: translateX(5px); }
+        }
+        .shake {
+            animation: shake 0.5s ease;
+        }
+
+        /* ===== FLIP CARD ===== */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 350px;
+            margin: 20px auto;
+        }
+        .flip-card {
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .flip-card:hover {
+            transform: scale(1.05);
+        }
+        .flip-card.revealed {
+            background: linear-gradient(135deg, #2d2d44, #1a1a2e);
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+
+        /* ===== CONFETTI ===== */
+        .confetti-piece {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            z-index: 3000;
+            pointer-events: none;
+        }
+
+        /* ===== TROLL WALK ===== */
+        .troll-character {
+            position: absolute;
+            font-size: clamp(2rem, 8vw, 4rem);
+            transition: all 0.3s ease;
+            z-index: 500;
+            pointer-events: none;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 480px) {
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
+            .button-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .cards-grid {
+                grid-template-columns: repeat(3, 1fr);
+                max-width: 280px;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .level-container {
+                padding: 40px;
+            }
+        }
+
+        /* ===== SCROLLABLE CONTENT ===== */
+        .scroll-content {
+            overflow-y: auto;
+            max-height: 100vh;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100%;
+            padding: 60px 20px 30px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Progress Bar -->
+<div class="progress-container" id="progressContainer" style="display:none;">
+    <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+</div>
+
+<!-- Score Display -->
+<div class="score-display" id="scoreDisplay" style="display:none;">
+    🧌 Score: <span id="scoreValue">0</span>
+</div>
+
+<!-- ====== START SCREEN ====== -->
+<div class="screen active" id="startScreen">
+    <div class="troll-face-big">🧌</div>
+    <div class="game-title">TROLL GAME</div>
+    <div class="subtitle">Can you beat all 10 levels without losing your mind?</div>
+    <button class="btn btn-primary" onclick="startGame()">▶ START GAME</button>
+    <button class="btn btn-secondary btn-small" onclick="showPopup('🧌', 'There are no instructions. Good luck! 😈')">❓ How to Play</button>
+</div>
+
+<!-- ====== LEVEL SCREEN ====== -->
+<div class="screen" id="levelScreen">
+    <div class="scroll-content" id="levelContent">
+        <!-- Dynamically filled -->
+    </div>
+</div>
+
+<!-- ====== RESULT SCREEN ====== -->
+<div class="screen" id="resultScreen">
+    <div class="result-emoji" id="resultEmoji">🧌</div>
+    <div class="result-title" id="resultTitle">Game Over!</div>
+    <div class="result-score" id="resultScoreText">Score: 0/10</div>
+    <div class="result-message" id="resultMessage">You got trolled so hard!</div>
+    <button class="btn btn-primary" onclick="restartGame()">🔄 Play Again</button>
+    <button class="btn btn-secondary btn-small" onclick="shareResult()">📤 Share Result</button>
+</div>
+
+<!-- ====== POPUP ====== -->
+<div class="popup-overlay" id="popupOverlay">
+    <div class="popup">
+        <div class="popup-emoji" id="popupEmoji">🧌</div>
+        <div class="popup-text" id="popupText">You got trolled!</div>
+        <button class="btn btn-primary btn-small" onclick="closePopup()">OK 😤</button>
+    </div>
+</div>
+
+<!-- ====== TROLL CHARACTER ====== -->
+<div class="troll-character" id="trollCharacter" style="display:none;">🧌</div>
+
+<script>
+// ===========================
+// GAME STATE
+// ===========================
+let currentLevel = 0;
+let score = 0;
+let totalLevels = 10;
+let dodgeInterval = null;
+let timerInterval = null;
+let clickCount = 0;
+let trollTimeout = null;
+
+// ===========================
+// LEVELS CONFIGURATION
+// ===========================
+const levels = [
+    // Level 1: Simple trick question
+    {
+        type: 'trick-question',
+        emoji: '🔥',
+        title: 'Easy Start!',
+        question: 'What color is the sky on a clear day?',
+        options: [
+            { text: 'Blue', correct: false, response: 'WRONG! The sky is actually clear — it just APPEARS blue! 🤓' },
+            { text: 'Red', correct: false, response: 'Are you from Mars? 👽' },
+            { text: 'Clear', correct: true, response: 'Wait... you actually knew that?! Fine, take a point. 😒' },
+            { text: 'Green', correct: false, response: 'You might need glasses... 🤦' }
+        ]
+    },
+    // Level 2: Dodge button
+    {
+        type: 'dodge-button',
+        emoji: '🎯',
+        title: 'Click the Button!',
+        question: 'Simply click the "WIN" button to proceed. Easy, right?',
+        buttonText: '🏆 WIN'
+    },
+    // Level 3: Fake loading
+    {
+        type: 'fake-loading',
+        emoji: '⏳',
+        title: 'Loading Next Level...',
+        question: 'Please wait while we load something amazing...',
+        fakeTexts: [
+            'Loading awesome content...',
+            'Almost there...',
+            'Downloading more RAM...',
+            'Teaching AI to be funny...',
+            'Reticulating splines...',
+            'Warming up the trolls...',
+            'Just kidding, click below! 😂'
+        ]
+    },
+    // Level 4: Click speed challenge (troll: counter goes backward)
+    {
+        type: 'click-challenge',
+        emoji: '👆',
+        title: 'Speed Clicker!',
+        question: 'Click the button 30 times to win! You have 10 seconds!',
+        target: 30
+    },
+    // Level 5: Find the real button
+    {
+        type: 'find-button',
+        emoji: '🔍',
+        title: 'Find the REAL Button!',
+        question: 'Only ONE of these buttons is real. Find it!',
+    },
+    // Level 6: Math troll
+    {
+        type: 'trick-question',
+        emoji: '🧮',
+        title: 'Quick Math!',
+        question: 'If you have 3 apples and I take away 2, how many do I have?',
+        options: [
+            { text: '1', correct: false, response: 'That\'s how many YOU have, not me! 🍎' },
+            { text: '2', correct: true, response: 'Wow, you actually read the question! Impressive. 👏' },
+            { text: '3', correct: false, response: 'I only took 2, chill! 😅' },
+            { text: '0', correct: false, response: 'I literally just took 2 apples! 🤷' }
+        ]
+    },
+    // Level 7: Slider that fights back
+    {
+        type: 'evil-slider',
+        emoji: '🎚️',
+        title: 'Set to 50!',
+        question: 'Simply drag the slider to exactly 50. That\'s it!',
+    },
+    // Level 8: Memory card troll
+    {
+        type: 'memory-cards',
+        emoji: '🃏',
+        title: 'Find the Troll!',
+        question: 'One card hides the 🧌. Find it! You get 3 tries.',
+    },
+    // Level 9: Agree to terms
+    {
+        type: 'terms',
+        emoji: '📜',
+        title: 'Terms & Conditions',
+        question: 'You must agree to our Terms of Service to continue:',
+        terms: 'By clicking "I Agree", you acknowledge that:\n\n1. You have been thoroughly trolled.\n2. The game creator owes you nothing.\n3. Your score probably doesn\'t matter.\n4. You secretly enjoyed this.\n5. You will share this with friends.\n6. Trolls are supreme beings.\n7. You accept that laughter is the best medicine.\n8. The real treasure was the trolling along the way.',
+    },
+    // Level 10: Final boss
+    {
+        type: 'final-boss',
+        emoji: '👑',
+        title: 'FINAL BOSS!',
+        question: 'Answer the ultimate question to win the game!',
+        bossQuestion: 'Was this game worth your time?',
+        options: [
+            { text: 'YES! 🎉', response: 'Then share it with everyone you know! 😈' },
+            { text: 'NO! 😡', response: 'Too bad, you already played the whole thing! 🧌' },
+            { text: 'Maybe? 🤔', response: 'That\'s the spirit of uncertainty we love! ✨' },
+        ]
+    }
+];
+
+// ===========================
+// CORE FUNCTIONS
+// ===========================
+
+function startGame() {
+    currentLevel = 0;
+    score = 0;
+    updateScore();
+    document.getElementById('progressContainer').style.display = 'block';
+    document.getElementById('scoreDisplay').style.display = 'block';
+    showScreen('levelScreen');
+    loadLevel();
+}
+
+function restartGame() {
+    startGame();
+}
+
+function showScreen(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+}
+
+function updateScore() {
+    document.getElementById('scoreValue').textContent = score;
+}
+
+function updateProgress() {
+    const pct = ((currentLevel) / totalLevels) * 100;
+    document.getElementById('progressBar').style.width = pct + '%';
+}
+
+function nextLevel() {
+    clearAllIntervals();
+    currentLevel++;
+    updateProgress();
+    if (currentLevel >= totalLevels) {
+        showResults();
+    } else {
+        loadLevel();
+    }
+}
+
+function showResults() {
+    clearAllIntervals();
+    document.getElementById('progressContainer').style.display = 'none';
+    document.getElementById('scoreDisplay').style.display = 'none';
+    showScreen('resultScreen');
+
+    const emoji = document.getElementById('resultEmoji');
+    const title = document.getElementById('resultTitle');
+    const scoreText = document.getElementById('resultScoreText');
+    const msg = document.getElementById('resultMessage');
+
+    scoreText.textContent = `Score: ${score} / ${totalLevels}`;
+
+    if (score >= 8) {
+        emoji.textContent = '🏆';
+        title.textContent = 'TROLL MASTER!';
+        msg.textContent = 'You\'re untrollable! Are you even human? 🤖';
+    } else if (score >= 5) {
+        emoji.textContent = '😏';
+        title.textContent = 'Not Bad!';
+        msg.textContent = 'You got trolled a few times, but survived! Almost impressive. 🧌';
+    } else if (score >= 3) {
+        emoji.textContent = '😂';
+        title.textContent = 'LOL!';
+        msg.textContent = 'The trolls had a feast today! You fell for almost everything! 🤣';
+    } else {
+        emoji.textContent = '🤡';
+        title.textContent = 'MAXIMUM TROLLED!';
+        msg.textContent = 'Congratulations! You are officially the most gullible person alive! 🎪';
+    }
+
+    launchConfetti();
+}
+
+function clearAllIntervals() {
+    if (dodgeInterval) { clearInterval(dodgeInterval); dodgeInterval = null; }
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    if (trollTimeout) { clearTimeout(trollTimeout); trollTimeout = null; }
+}
+
+// ===========================
+// POPUP
+// ===========================
+
+function showPopup(emoji, text, callback) {
+    document.getElementById('popupEmoji').textContent = emoji;
+    document.getElementById('popupText').textContent = text;
+    document.getElementById('popupOverlay').classList.add('active');
+    window._popupCallback = callback || null;
+}
+
+function closePopup() {
+    document.getElementById('popupOverlay').classList.remove('active');
+    if (window._popupCallback) {
+        window._popupCallback();
+        window._popupCallback = null;
+    }
+}
+
+// ===========================
+// LEVEL LOADER
+// ===========================
+
+function loadLevel() {
+    const level = levels[currentLevel];
+    const container = document.getElementById('levelContent');
+    container.innerHTML = '';
+
+    const header = `<div class="level-header">Level ${currentLevel + 1} / ${totalLevels}</div>`;
+    const emojiDiv = `<div class="level-emoji">${level.emoji}</div>`;
+    const titleDiv = `<div class="level-title">${level.title}</div>`;
+    const questionDiv = `<div class="level-question">${level.question}</div>`;
+
+    switch (level.type) {
+        case 'trick-question':
+            loadTrickQuestion(container, level, header, emojiDiv, titleDiv, questionDiv);
+            break;
+        case 'dodge-button':
+            loadDodgeButton(container, level, header, emojiDiv, titleDiv, questionDiv);
+            break;
+        case 'fake-loading':
+            loadFakeLoading(container, level, header, emojiDiv, titleDiv, questionDiv);
+            break;
+        case 'click-challenge':
+            loadClickChallenge(container, level, header, emojiDiv, titleDiv, questionDiv);
+            break;
+        case 'find-button':
+            loadFindButton(container, level, header, emojiDiv, titleDiv, questionDiv);
+            break;
+        case 'evil-slider':
+            loadEvilSlider(container, level, header, emojiDiv, titleDiv, questionDiv);
+            break;
+        case 'memory-cards':
+            loadMemoryCards(container, level, header, emojiDiv, titleDiv, questionDiv);
+            break;
+        case 'terms':
+            loadTerms(container, level, header, emojiDiv, titleDiv, questionDiv);
+            break;
+        case 'final-boss':
+            loadFinalBoss(container, level, header, emojiDiv, titleDiv, questionDiv);
+            break;
+    }
+}
+
+// ===========================
+// LEVEL TYPES
+// ===========================
+
+// --- TRICK QUESTION ---
+function loadTrickQuestion(container, level, header, emojiDiv, titleDiv, questionDiv) {
+    let optionsHTML = '<div class="options-grid">';
+    level.options.forEach((opt, i) => {
+        const colorClass = ['btn-primary', 'btn-secondary', 'btn-green', 'btn-danger'][i % 4];
+        optionsHTML += `<button class="btn ${colorClass}" onclick="answerTrick(${currentLevel}, ${i})">${opt.text}</button>`;
+    });
+    optionsHTML += '</div>';
+    container.innerHTML = header + emojiDiv + titleDiv + questionDiv + optionsHTML;
+}
+
+function answerTrick(lvl, idx) {
+    const level = levels[lvl];
+    const opt = level.options[idx];
+    if (opt.correct) {
+        score++;
+        updateScore();
+        showPopup('✅', opt.response, nextLevel);
+    } else {
+        showPopup('🧌', opt.response, nextLevel);
+    }
+}
+
+// --- DODGE BUTTON ---
+function loadDodgeButton(container, level, header, emojiDiv, titleDiv, questionDiv) {
+    container.innerHTML = header + emojiDiv + titleDiv + questionDiv +
+        `<div style="position:relative; width:100%; height:200px; margin-top:20px;">
+            <button class="btn btn-green dodge-btn" id="dodgeBtn" 
+                onmouseenter="moveDodgeBtn()" ontouchstart="moveDodgeBtn()"
+                onclick="catchDodgeBtn()"
+                style="left:50%; top:50%; transform:translate(-50%,-50%);">
+                ${level.buttonText}
+            </button>
+        </div>
+        <div style="margin-top:15px;">
+            <button class="btn btn-secondary btn-small" onclick="giveDodgeUp()">😤 I Give Up</button>
+        </div>`;
+
+    let dodgeCount = 0;
+    window.moveDodgeBtn = function () {
+        dodgeCount++;
+        const btn = document.getElementById('dodgeBtn');
+        if (!btn) return;
+        const parent = btn.parentElement;
+        const maxX = parent.clientWidth - btn.clientWidth;
+        const maxY = parent.clientHeight - btn.clientHeight;
+        const x = Math.random() * maxX;
+        const y = Math.random() * maxY;
+        btn.style.left = x + 'px';
+        btn.style.top = y + 'px';
+        btn.style.transform = 'none';
+
+        if (dodgeCount > 12) {
+            btn.style.transition = 'none';
+            btn.textContent = '😜 Can\'t catch me!';
+        }
+        if (dodgeCount > 20) {
+            btn.textContent = '🏃 Too slow!';
+        }
+    };
+
+    window.catchDodgeBtn = function () {
+        score++;
+        updateScore();
+        showPopup('😱', 'You actually caught it?! Fine... +1 point.', nextLevel);
+    };
+
+    window.giveDodgeUp = function () {
+        showPopup('🧌', 'Haha! The button wins this round! 🏃💨', nextLevel);
+    };
+}
+
+// --- FAKE LOADING ---
+function loadFakeLoading(container, level, header, emojiDiv, titleDiv, questionDiv) {
+    container.innerHTML = header + emojiDiv + titleDiv +
+        `<div class="fake-loading active" id="fakeLoader">
+            <div class="loader"></div>
+            <div class="loading-text" id="loadingText">Loading awesome content...</div>
+        </div>
+        <div id="fakeLoadingBtn" style="display:none;">
+            <button class="btn btn-primary" onclick="fakeLoadingWin()">😂 I Knew It!</button>
+            <button class="btn btn-secondary btn-small" onclick="fakeLoadingLose()">Wait... what?</button>
+        </div>`;
+
+    let textIdx = 0;
+    const texts = level.fakeTexts;
+    timerInterval = setInterval(() => {
+        textIdx++;
+        if (textIdx < texts.length) {
+            document.getElementById('loadingText').textContent = texts[textIdx];
+        }
+        if (textIdx >= texts.length - 1) {
+            clearInterval(timerInterval);
+            document.getElementById('fakeLoader').classList.remove('active');
+            document.getElementById('fakeLoadingBtn').style.display = 'block';
+        }
+    }, 1500);
+}
+
+window.fakeLoadingWin = function () {
+    score++;
+    updateScore();
+    showPopup('👏', 'Smart cookie! You saw through the fake loading! +1', nextLevel);
+};
+
+window.fakeLoadingLose = function () {
+    showPopup('🧌', 'You actually waited for it to load?! 🤣🤣🤣', nextLevel);
+};
+
+// --- CLICK CHALLENGE ---
+function loadClickChallenge(container, level, header, emojiDiv, titleDiv, questionDiv) {
+    clickCount = 0;
+    let timeLeft = 10;
+    let trollActivated = false;
+
+    container.innerHTML = header + emojiDiv + titleDiv + questionDiv +
+        `<div class="timer-bar-container"><div class="timer-bar" id="clickTimer" style="width:100%"></div></div>
+        <div class="click-area" id="clickArea" onclick="doClick()">👆</div>
+        <div class="click-counter" id="clickCounter">0</div>
+        <div class="click-target">Target: ${level.target} clicks</div>`;
+
+    window.doClick = function () {
+        if (trollActivated) return;
+
+        clickCount++;
+
+        // Troll: After 15 clicks, start subtracting
+        if (clickCount > 15 && Math.random() > 0.5) {
+            clickCount -= 2;
+            if (clickCount < 0) clickCount = 0;
+        }
+
+        document.getElementById('clickCounter').textContent = clickCount;
+
+        if (clickCount >= level.target) {
+            trollActivated = true;
+            clearInterval(timerInterval);
+            score++;
+            updateScore();
+            showPopup('🎉', 'Somehow you did it! Even though we were sabotaging you! +1', nextLevel);
+        }
+    };
+
+    timerInterval = setInterval(() => {
+        timeLeft -= 0.1;
+        const pct = (timeLeft / 10) * 100;
+        const bar = document.getElementById('clickTimer');
+        if (bar) {
+            bar.style.width = pct + '%';
+            if (pct < 30) bar.classList.add('danger');
+        }
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            if (!trollActivated) {
+                showPopup('🧌', `Time's up! You got ${clickCount} clicks. Oh, we were also subtracting clicks when you weren't looking! 😈`, nextLevel);
+            }
+        }
+    }, 100);
+}
+
+// --- FIND BUTTON ---
+function loadFindButton(container, level, header, emojiDiv, titleDiv, questionDiv) {
+    const colors = ['#f5576c', '#4facfe', '#43e97b', '#ffd200', '#f093fb', '#ff6b9d', '#38f9d7', '#667eea', '#764ba2'];
+    const fakeLabels = ['WIN', 'REAL', 'THIS ONE', 'CLICK ME', 'HERE!', 'WINNER', 'YES!', 'PRIZE', 'CORRECT', 'REAL ONE', 'TRUST ME', '100%'];
+    let realIndex = Math.floor(Math.random() * 12);
+    let attempts = 0;
+
+    let gridHTML = '<div class="button-grid">';
+    for (let i = 0; i < 12; i++) {
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const label = fakeLabels[i % fakeLabels.length];
+        gridHTML += `<button class="grid-btn" style="background:${color}; color:#fff;" onclick="tryFindBtn(${i}, ${realIndex})">${label}</button>`;
+    }
+    gridHTML += '</div>';
+
+    container.innerHTML = header + emojiDiv + titleDiv + questionDiv + gridHTML +
+        `<div style="margin-top:10px; color:#666; font-size:0.8rem;" id="findHint">Attempts: 0</div>`;
+
+    window.tryFindBtn = function (clicked, real) {
+        attempts++;
+        document.getElementById('findHint').textContent = `Attempts: ${attempts}`;
+
+        // Troll: Change the real button after each wrong click
+        if (clicked === real) {
+            if (attempts <= 3) {
+                score++;
+                updateScore();
+                showPopup('🎯', `Found it in ${attempts} tries! Lucky guess... +1`, nextLevel);
+            } else {
+                showPopup('😅', `Found it in ${attempts} tries! We kept moving it though! 🧌`, nextLevel);
+            }
+        } else {
+            // Move the real button
+            const btns = container.querySelectorAll('.grid-btn');
+            btns[clicked].style.opacity = '0.3';
+            btns[clicked].style.pointerEvents = 'none';
+
+            // Secretly change real index
+            let newReal;
+            do {
+                newReal = Math.floor(Math.random() * 12);
+            } while (btns[newReal].style.opacity === '0.3');
+
+            realIndex = newReal;
+
+            // Update all remaining buttons' onclick
+            btns.forEach((btn, i) => {
+                if (btn.style.opacity !== '0.3') {
+                    btn.onclick = () => window.tryFindBtn(i, realIndex);
+                }
+            });
+
+            if (attempts >= 11) {
+                showPopup('🧌', 'We were moving the real button after every click! 🤣', nextLevel);
+            }
+        }
+    };
+}
+
+// --- EVIL SLIDER ---
+function loadEvilSlider(container, level, header, emojiDiv, titleDiv, questionDiv) {
+    container.innerHTML = header + emojiDiv + titleDiv + questionDiv +
+        `<div class="slider-area">
+            <input type="range" min="0" max="100" value="25" id="evilSlider" oninput="updateSliderVal()">
+            <div class="slider-value" id="sliderVal">25</div>
+        </div>
+        <button class="btn btn-green" id="sliderSubmit" onclick="submitSlider()">✅ Submit (50)</button>
+        <div style="margin-top:10px;">
+            <button class="btn btn-secondary btn-small" onclick="sliderGiveUp()">🏳️ Impossible!</button>
+        </div>`;
+
+    let evilActive = true;
+
+    window.updateSliderVal = function () {
+        const slider = document.getElementById('evilSlider');
+        let val = parseInt(slider.value);
+        document.getElementById('sliderVal').textContent = val;
+
+        // Troll: push slider away from 50
+        if (evilActive && Math.abs(val - 50) < 10) {
+            setTimeout(() => {
+                if (val >= 50) {
+                    slider.value = Math.min(100, val + Math.floor(Math.random() * 20) + 5);
+                } else {
+                    slider.value = Math.max(0, val - Math.floor(Math.random() * 20) - 5);
+                }
+                document.getElementById('sliderVal').textContent = slider.value;
+            }, 100);
+        }
+    };
+
+    window.submitSlider = function () {
+        const val = parseInt(document.getElementById('evilSlider').value);
+        if (val === 50) {
+            score++;
+            updateScore();
+            evilActive = false;
+            showPopup('🎉', 'WHAT?! You actually got it to 50?! Impossible! +1', nextLevel);
+        } else {
+            document.getElementById('sliderSubmit').classList.add('shake');
+            setTimeout(() => document.getElementById('sliderSubmit').classList.remove('shake'), 500);
+            showPopup('🧌', `That's ${val}, not 50! The slider has a mind of its own! 😈`, null);
+        }
+    };
+
+    window.sliderGiveUp = function () {
+        evilActive = false;
+        showPopup('🧌', 'The slider was programmed to run away from 50! You never had a chance! 🤣', nextLevel);
+    };
+}
+
+// --- MEMORY CARDS ---
+function loadMemoryCards(container, level, header, emojiDiv, titleDiv, questionDiv) {
+    let tries = 3;
+    let trollIdx = Math.floor(Math.random() * 9);
+    const emojis = ['💀', '👻', '🤡', '💩', '👹', '😈', '🙈', '🤪', '😱'];
+
+    let cardsHTML = '<div class="cards-grid">';
+    for (let i = 0; i < 9; i++) {
+        cardsHTML += `<div class="flip-card" id="card${i}" onclick="flipCard(${i})">❓</div>`;
+    }
+    cardsHTML += '</div>';
+
+    container.innerHTML = header + emojiDiv + titleDiv + questionDiv + cardsHTML +
+        `<div style="margin-top:15px; font-size:1.1rem;" id="triesLeft">Tries left: ${tries}</div>`;
+
+    window.flipCard = function (idx) {
+        if (tries <= 0) return;
+        tries--;
+        document.getElementById('triesLeft').textContent = `Tries left: ${tries}`;
+
+        const card = document.getElementById('card' + idx);
+        card.classList.add('revealed');
+
+        if (idx === trollIdx) {
+            card.textContent = '🧌';
+            score++;
+            updateScore();
+            // Reveal all
+            for (let i = 0; i < 9; i++) {
+                const c = document.getElementById('card' + i);
+                c.classList.add('revealed');
+                c.textContent = i === trollIdx ? '🧌' : emojis[i % emojis.length];
+            }
+            setTimeout(() => {
+                showPopup('🎯', 'You found the troll! Lucky pick! +1', nextLevel);
+            }, 500);
+        } else {
+            card.textContent = emojis[idx % emojis.length];
+            // Troll: Move the troll after each wrong guess
+            let newIdx;
+            do {
+                newIdx = Math.floor(Math.random() * 9);
+            } while (newIdx === idx || document.getElementById('card' + newIdx).classList.contains('revealed'));
+            trollIdx = newIdx;
+
+            if (tries <= 0) {
+                // Reveal all
+                for (let i = 0; i < 9; i++) {
+                    const c = document.getElementById('card' + i);
+                    c.classList.add('revealed');
+                    c.textContent = i === trollIdx ? '🧌' : emojis[i % emojis.length];
+                }
+                setTimeout(() => {
+                    showPopup('🧌', 'The troll was moving between cards after each guess! 🃏', nextLevel);
+                }, 500);
+            }
+        }
+    };
+}
+
+// --- TERMS & CONDITIONS ---
+function loadTerms(container, level, header, emojiDiv, titleDiv, questionDiv) {
+    const termsFormatted = level.terms.replace(/\n/g, '<br>');
+
+    container.innerHTML = header + emojiDiv + titleDiv + questionDiv +
+        `<div style="background:rgba(255,255,255,0.05); padding:20px; border-radius:15px; max-width:450px; width:100%; max-height:200px; overflow-y:auto; margin-bottom:20px; text-align:left; font-size:0.9rem; line-height:1.6; color:#ccc;">
+            ${termsFormatted}
+        </div>
+        <div class="options-grid single-col" style="max-width:300px;">
+            <button class="btn btn-green" id="agreeBtn" onclick="agreeTerms()">✅ I Agree</button>
+            <button class="btn btn-danger" id="disagreeBtn" onclick="disagreeTerms()">❌ I Disagree</button>
+        </div>`;
+
+    let disagreeCount = 0;
+
+    window.agreeTerms = function () {
+        score++;
+        updateScore();
+        showPopup('📝', 'You agreed that you\'ve been trolled! Legally binding! +1 for honesty!', nextLevel);
+    };
+
+    window.disagreeTerms = function () {
+        disagreeCount++;
+        const btn = document.getElementById('disagreeBtn');
+        if (disagreeCount === 1) {
+            btn.textContent = '❌ Are you sure?';
+        } else if (disagreeCount === 2) {
+            btn.textContent = '❌ Really sure?';
+        } else if (disagreeCount === 3) {
+            btn.textContent = '❌ Final answer?';
+        } else {
+            showPopup('🧌', 'Clicking disagree was never going to work. We automatically agreed for you! 📝😈', nextLevel);
+        }
+    };
+}
+
+// --- FINAL BOSS ---
+function loadFinalBoss(container, level, header, emojiDiv, titleDiv, questionDiv) {
+    let optionsHTML = '<div class="options-grid single-col" style="max-width:300px;">';
+    level.options.forEach((opt, i) => {
+        const colorClass = ['btn-green', 'btn-danger', 'btn-secondary'][i];
+        optionsHTML += `<button class="btn ${colorClass}" onclick="finalAnswer(${i})">${opt.text}</button>`;
+    });
+    optionsHTML += '</div>';
+
+    container.innerHTML = header +
+        `<div class="level-emoji" style="animation: spin 1s ease infinite;">${level.emoji}</div>` +
+        titleDiv +
+        `<div class="level-question">${level.bossQuestion}</div>` +
+        optionsHTML;
+
+    window.finalAnswer = function (idx) {
+        score++; // Everyone gets a point for finishing!
+        updateScore();
+        showPopup('🧌', levels[currentLevel].options[idx].response + '\n\n+1 point for completing the game!', () => {
+            currentLevel++;
+            updateProgress();
+            showResults();
+        });
+    };
+}
+
+// ===========================
+// CONFETTI
+// ===========================
+function launchConfetti() {
+    const colors = ['#f5576c', '#ffd200', '#4facfe', '#43e97b', '#f093fb', '#ff6b9d'];
+    for (let i = 0; i < 80; i++) {
+        setTimeout(() => {
+            const piece = document.createElement('div');
+            piece.className = 'confetti-piece';
+            piece.style.left = Math.random() * 100 + 'vw';
+            piece.style.top = '-10px';
+            piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+            piece.style.width = (Math.random() * 10 + 5) + 'px';
+            piece.style.height = (Math.random() * 10 + 5) + 'px';
+            piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+            piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+            document.body.appendChild(piece);
+
+            const duration = Math.random() * 2000 + 1500;
+            const xDrift = (Math.random() - 0.5) * 200;
+
+            piece.animate([
+                { transform: `translateY(0) translateX(0) rotate(0deg)`, opacity: 1 },
+                { transform: `translateY(${window.innerHeight + 20}px) translateX(${xDrift}px) rotate(${Math.random() * 720}deg)`, opacity: 0 }
+            ], {
+                duration: duration,
+                easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+            }).onfinish = () => piece.remove();
+        }, i * 30);
+    }
+}
+
+// ===========================
+// SHARE
+// ===========================
+function shareResult() {
+    const text = `🧌 I scored ${score}/${totalLevels} in the Ultimate Troll Game! Can you beat me?`;
+    if (navigator.share) {
+        navigator.share({ title: 'Troll Game', text: text }).catch(() => { });
+    } else {
+        showPopup('📋', 'Share text copied!\n\n' + text);
+        navigator.clipboard?.writeText(text);
+    }
+}
+
+// ===========================
+// TROLL CHARACTER WALKER
+// ===========================
+function showTrollWalker() {
+    const troll = document.getElementById('trollCharacter');
+    troll.style.display = 'block';
+    troll.style.bottom = '20px';
+    troll.style.left = '-60px';
+
+    let pos = -60;
+    const walkInterval = setInterval(() => {
+        pos += 3;
+        troll.style.left = pos + 'px';
+        if (pos > window.innerWidth + 60) {
+            clearInterval(walkInterval);
+            troll.style.display = 'none';
+        }
+    }, 30);
+}
+
+// Random troll walker
+setInterval(() => {
+    if (document.getElementById('levelScreen').classList.contains('active')) {
+        if (Math.random() > 0.7) showTrollWalker();
+    }
+}, 15000);
+
+// ===========================
+// PREVENT ZOOM ON DOUBLE TAP
+// ===========================
+document.addEventListener('dblclick', (e) => e.preventDefault());
+
+// ===========================
+// INIT
+// ===========================
+console.log('🧌 Troll Game Loaded! Good luck...');
+    </script>
+</body>
+</html>
